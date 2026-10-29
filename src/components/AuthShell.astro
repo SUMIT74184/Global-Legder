@@ -1,0 +1,27 @@
+---
+// Shared frame for the login and signup pages.
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+interface Props {
+  title: string;
+  kicker: string;
+}
+
+const { title, kicker } = Astro.props;
+---
+
+<BaseLayout title={title} noindex>
+  <section class="mx-auto grid max-w-5xl items-center gap-12 px-4 py-14 sm:px-6 md:grid-cols-[1fr_1.1fr]">
+    <div class="hidden md:block" data-reveal="stagger">
+      <p class="font-hand text-lg text-clay-d" style="--i:0">{kicker}</p>
+      <p class="mt-3 font-serif text-4xl font-semibold leading-tight text-ink" style="--i:1">Save pieces, pick your newsletter topics, and pick up where you left off.</p>
+      <svg class="mt-8 h-24 w-56 overflow-visible" viewBox="0 0 220 90" aria-hidden="true" style="--i:2">
+        <path d="M6 70 C 40 20, 80 85, 118 40 S 180 10, 214 30" pathLength="1" data-draw style="fill:none;stroke:var(--clay);stroke-width:3;stroke-dasharray:1;stroke-linecap:round;--draw-dur:1.4s;--draw-delay:.4s"></path>
+      </svg>
+    </div>
+    <div class="card p-6 sm:p-8" data-sketch="fill" data-sketch-r="16" style="--tilt:-.4deg">
+      <h1 class="font-serif text-3xl font-semibold text-ink">{title}</h1>
+      <slot />
+    </div>
+  </section>
+</BaseLayout>

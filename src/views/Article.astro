@@ -1,0 +1,180 @@
+---
+// A piece: /articles/<slug>/ and /hi/articles/<slug>/, and the admin's draft preview.
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Toc from '../components/Toc.astro';
+import Stamp from '../components/Stamp.astro';
+import SourceList from '../components/SourceList.astro';
+import Updates from '../components/Updates.astro';
+import Footnotes from '../components/Footnotes.astro';
+import ArticleGrid from '../components/ArticleGrid.astro';
+import RichText from '../components/RichText.astro';
+import SaveButton from '../components/SaveButton.astro';
+import { related, type Article } from '../lib/articles';
+import { getProfile } from '../lib/profile';
+import { SITE } from '../lib/site';
+import { formatDate, langOf, localPath, switchPath, t, topicInfo, typeInfo } from '../lib/i18n';
+
+interface Props {
+  article: Article;
+  all: Article[];
+  preview?: boolean;
+}
+
+const { article, all, preview = false } = Astro.props;
+const lang = langOf(Astro);
+const tr = t(lang);
+const d = article.data;
+const tp = topicInfo(lang, d.topic);
+const more = related(article, all);
+const ty = typeInfo(lang, d.type);
+// Sidebar: newest pieces on the same topic that aren't already in "Keep reading" below.
+const sameTopic = all
+  .filter((a) => a.id !== article.id && a.data.topic === d.topic && !more.includes(a))
+  .slice(0, 4);
+const self = localPath(lang, `/articles/${article.id}/`);
+const other = lang === 'hi' ? 'en' : 'hi';
+// The Hindi page of an untranslated piece shows the English text with a note.
+const untranslated = lang === 'hi' && article.lang === 'en';
+const hasOther = article.translations.includes(other);
+const author = (await getProfile(lang)).name || SITE.author;
+// "On this page" needs at least two headings.
+const hasToc = article.headings.filter((h) => h.depth <= 3).length > 1;
+const ogImage = `/og/${lang === 'hi' && article.lang === 'hi' ? 'hi/' : ''}${article.id}.png`;
+
+const jsonld = {
+  '@context': 'https://schema.org',
+  '@type': d.type === 'report' ? 'Report' : 'Article',
+  headline: d.title,
+  description: d.description,
+  inLanguage: article.lang,
+  datePublished: d.pubDate.toISOString(),
+  ...(d.updated ? { dateModified: d.updated.toISOString() } : {}),
+  image: [new URL(ogImage, Astro.site).href, ...(d.hero ? [new URL(d.hero, Astro.site).href] : [])],
+  author: { '@type': 'Person', name: author, url: new URL(localPath(lang, '/profile/'), Astro.site).href },
+  publisher: { '@type': 'Organization', name: SITE.name, url: new URL('/', Astro.site).href },
+  mainEntityOfPage: new URL(self, Astro.site).href,
+  articleSection: tp.label,
+  keywords: d.tags.join(', '),
+  ...(d.references.length ? { citation: d.references.map((r) => ({ '@type': 'CreativeWork', name: r.title, url: r.url })) } : {}),
+};
+---
+
+<BaseLayout
+  title={d.title}
+  description={d.description}
+  image={preview ? undefined : ogImage}
+  type="article"
+  noindex={preview || untranslated}
+  translated={!preview && article.translations.includes('hi')}
+  jsonld={preview ? undefined : jsonld}
+>
+  <Fragment slot="head">
+    <meta property="article:published_time" content={d.pubDate.toISOString()} />
+    {d.updated && <meta property="article:modified_time" content={d.updated.toISOString()} />}
+    <meta property="article:section" content={tp.label} />
+  </Fragment>
+
+  {
+    preview && (
+      <div class="preview-bar" role="status" data-preview-bar data-id={article.docId} data-updating={tr.preview.updating}>
+        <span class="preview-dot" aria-hidden="true" />
+        <span data-preview-status>{tr.preview.banner}</span>
+        <button type="button" class="preview-btn" data-preview-refresh>{tr.preview.refresh}</button>
+        <a class="preview-btn" href={`/admin/collections/articles/${article.docId}`} target="_top">{tr.preview.edit}</a>
+      </div>
+    )
+  }
+
+  <article class="mx-auto max-w-6xl px-4 pt-10 sm:px-6 sm:pt-14" lang={article.lang} data-pagefind-body={preview || untranslated ? undefined : ''}>
+    {
+      (untranslated || hasOther) && (
+        <p class="mb-6 flex max-w-[70ch] flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-2" lang={lang} data-pagefind-ignore>
+          {untranslated && <span>{tr.piece.notTranslated}</span>}
+          {hasOther && !preview && (
+            <a href={switchPath(self, other)} hreflang={other} lang={other} class="font-semibold text-clay-d hover:underline" data-astro-reload>
+              {tr.piece.readOther} →
+            </a>
+          )}
+        </p>
+      )
+    }
+    <header class="max-w-[70ch]">
+      <div class="flex flex-wrap items-center gap-3" lang={lang} data-pagefind-ignore>
+        <Stamp kind={d.type} tilt={-3} />
+        <a href={tp.href} class="chip hover:opacity-80" style={`--chip:${tp.color}`}>{tp.label}</a>
+        {d.tags.map((tag) => <span class="text-xs text-mute">#{tag}</span>)}
+      </div>
+      <h1 class="mt-5 font-serif text-4xl font-semibold leading-[1.1] tracking-tight text-ink sm:text-5xl">{d.title}</h1>
+      <p class="mt-4 font-serif text-xl leading-relaxed text-ink-2">{d.description}</p>
+      <div class="mt-6 flex flex-wrap items-center gap-x-4 gap-y-3 text-sm text-mute" lang={lang} data-pagefind-ignore>
+        <a href={localPath(lang, '/profile/')} class="font-medium text-ink hover:text-clay-d">{author}</a>
+        <span><time datetime={d.pubDate.toISOString()}>{formatDate(d.pubDate, lang)}</time></span>
+        {d.updated && <span class="text-ink">{tr.piece.updated} <time datetime={d.updated.toISOString()}>{formatDate(d.updated, lang)}</time></span>}
+        <span>{tr.piece.minRead(article.minutesRead)}</span>
+        {!preview && <SaveButton docId={article.docId} next={self} />}
+      </div>
+    </header>
+
+    {
+      d.hero && (
+        <div class="mt-10 p-2" data-sketch="fill" data-sketch-r="14" data-reveal>
+          <div class="kb aspect-[21/9]">
+            <img src={d.hero} alt={d.heroAlt} />
+          </div>
+        </div>
+      )
+    }
+
+    <div class="mt-12 grid gap-10 lg:grid-cols-[minmax(0,70ch)_1fr] lg:gap-16">
+      <div>
+        <div class="prose prose-lg prose-ledger">
+          <RichText body={article.body} />
+        </div>
+        <Footnotes notes={article.footnotes} />
+        <SourceList references={d.references} />
+        <Updates updates={d.updates} />
+      </div>
+      <aside class="order-first lg:order-none" lang={lang} data-pagefind-ignore>
+        <div class="space-y-10 lg:sticky lg:top-24">
+          {hasToc && <Toc headings={article.headings} hasNotes={article.footnotes.length > 0} hasReferences={d.references.length > 0} hasUpdates={d.updates.length > 0} />}
+          {
+            sameTopic.length > 0 && (
+              <nav class="side-list hidden lg:block" aria-label={tr.piece.moreOn(tp.label)}>
+                <p class="mb-3 font-hand text-lg text-ink">{tr.piece.moreOn(tp.label)}</p>
+                <ul class="space-y-3">
+                  {sameTopic.map((a) => (
+                    <li>
+                      <a href={localPath(lang, `/articles/${a.id}/`)} class="group block">
+                        <span class="block font-hand text-sm text-clay-d">{typeInfo(lang, a.data.type).label}</span>
+                        <span class="block font-serif text-[0.98rem] font-semibold leading-snug text-ink group-hover:text-clay-d" lang={a.lang}>{a.data.title}</span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            )
+          }
+          <nav class="hidden lg:block" aria-label={tr.piece.browse}>
+            <p class="mb-3 font-hand text-lg text-ink">{tr.piece.browse}</p>
+            <ul class="space-y-1.5 text-sm">
+              <li><a class="nav-link !px-0" href={ty.href}>{tr.piece.allOf(ty.plural)} →</a></li>
+              <li><a class="nav-link !px-0" href={tp.href}>{tr.piece.allOf(tp.label)} →</a></li>
+              <li><a class="nav-link !px-0" href={localPath(lang, '/articles/')}>{tr.list.everything} →</a></li>
+            </ul>
+          </nav>
+        </div>
+      </aside>
+    </div>
+  </article>
+
+  {
+    more.length > 0 && (
+      <section class="mx-auto mt-20 max-w-6xl px-4 sm:px-6" aria-labelledby="related">
+        <h2 id="related" class="font-hand text-2xl text-ink">{tr.piece.keepReading}</h2>
+        <ArticleGrid articles={more} />
+      </section>
+    )
+  }
+</BaseLayout>
+
+{preview && <script src="../scripts/preview.ts"></script>}

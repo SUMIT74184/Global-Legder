@@ -1,0 +1,32 @@
+---
+import { SITE, TOPIC_KEYS, TYPE_KEYS } from '../lib/site';
+import { langOf, localPath, t, topicInfo, typeInfo } from '../lib/i18n';
+
+const lang = langOf(Astro);
+const tr = t(lang);
+---
+
+<footer class="mt-24 border-t border-rule/70" transition:animate="none">
+  <div class="mx-auto grid max-w-6xl gap-8 px-4 py-10 text-sm text-ink-2 sm:grid-cols-4 sm:px-6">
+    <div class="sm:col-span-2">
+      <p class="font-hand text-xl text-ink">{SITE.name}</p>
+      <p class="mt-2 max-w-xs text-mute">{tr.tagline}</p>
+    </div>
+    <nav aria-label={tr.footer.topics}>
+      <p class="mb-2 font-semibold text-ink">{tr.footer.topics}</p>
+      <ul class="space-y-1">
+        {TOPIC_KEYS.map((k) => <li><a class="hover:text-clay-d" href={topicInfo(lang, k).href}>{topicInfo(lang, k).label}</a></li>)}
+      </ul>
+    </nav>
+    <nav aria-label={tr.footer.read}>
+      <p class="mb-2 font-semibold text-ink">{tr.footer.read}</p>
+      <ul class="space-y-1">
+        {TYPE_KEYS.map((k) => <li><a class="hover:text-clay-d" href={typeInfo(lang, k).href}>{typeInfo(lang, k).plural}</a></li>)}
+        <li><a class="hover:text-clay-d" href={localPath(lang, '/profile/')}>{tr.footer.profile}</a></li>
+        <li><a class="hover:text-clay-d" href="/rss.xml">{tr.footer.rss}</a></li>
+        {SITE.youtube && <li><a class="hover:text-clay-d" href={SITE.youtube}>YouTube</a></li>}
+        {SITE.github && <li><a class="hover:text-clay-d" href={SITE.github}>{tr.footer.data}</a></li>}
+      </ul>
+    </nav>
+  </div>
+</footer>

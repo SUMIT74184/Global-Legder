@@ -1,0 +1,165 @@
+// Admin theme: the site's paper-and-ink palette, its fonts and clay accent (see src/styles/global.css
+// in the Astro site). Payload builds every colour from these two scales, in light and dark mode.
+@import '@fontsource-variable/inter/index.css';
+@import '@fontsource/pangolin/400.css';
+@import '@fontsource-variable/source-serif-4/index.css';
+@import '@fontsource-variable/noto-serif-devanagari/index.css';
+@import '@fontsource-variable/noto-sans-devanagari/index.css';
+
+:root {
+  --font-body: 'Inter Variable', 'Noto Sans Devanagari Variable', system-ui, sans-serif;
+  --font-serif: 'Source Serif 4 Variable', 'Noto Serif Devanagari Variable', Georgia, serif;
+  --font-hand: 'Pangolin', 'Comic Sans MS', cursive;
+  --clay: #d97757;
+  --clay-d: #b35a3c;
+  --spring: cubic-bezier(0.3, 1.55, 0.5, 1);
+
+  // Paper (0) → ink (800) → night paper (900). Dark mode reads the scale backwards.
+  --color-base-0: rgb(255, 253, 248);
+  --color-base-50: rgb(250, 249, 245);
+  --color-base-100: rgb(243, 237, 224);
+  --color-base-150: rgb(235, 228, 214);
+  --color-base-200: rgb(227, 218, 204);
+  --color-base-250: rgb(211, 201, 186);
+  --color-base-300: rgb(195, 184, 169);
+  --color-base-350: rgb(179, 167, 152);
+  --color-base-400: rgb(163, 150, 134);
+  --color-base-450: rgb(144, 132, 118);
+  --color-base-500: rgb(125, 113, 102);
+  --color-base-550: rgb(108, 97, 87);
+  --color-base-600: rgb(91, 80, 73);
+  --color-base-650: rgb(74, 64, 58);
+  --color-base-700: rgb(63, 54, 49);
+  --color-base-750: rgb(53, 45, 41);
+  --color-base-800: rgb(42, 35, 32);
+  --color-base-850: rgb(36, 32, 28);
+  --color-base-900: rgb(28, 25, 22);
+  --color-base-950: rgb(21, 18, 16);
+  --color-base-1000: rgb(14, 12, 10);
+
+  // "Published", success toasts: the site's olive.
+  --color-success-50: rgb(238, 242, 231);
+  --color-success-100: rgb(227, 233, 217);
+  --color-success-150: rgb(216, 225, 203);
+  --color-success-200: rgb(205, 216, 189);
+  --color-success-250: rgb(191, 203, 173);
+  --color-success-300: rgb(177, 191, 157);
+  --color-success-350: rgb(162, 178, 141);
+  --color-success-400: rgb(148, 165, 125);
+  --color-success-450: rgb(134, 153, 109);
+  --color-success-500: rgb(120, 140, 93);
+  --color-success-550: rgb(110, 129, 84);
+  --color-success-600: rgb(100, 118, 74);
+  --color-success-650: rgb(89, 108, 65);
+  --color-success-700: rgb(79, 97, 56);
+  --color-success-750: rgb(69, 85, 50);
+  --color-success-800: rgb(60, 73, 43);
+  --color-success-850: rgb(50, 62, 37);
+  --color-success-900: rgb(41, 50, 30);
+  --color-success-950: rgb(31, 38, 24);
+}
+
+html[data-theme='dark'] {
+  --clay: #e48a6a;
+  --clay-d: #f2a887;
+}
+
+// Page titles and section headings in the site's hand-drawn face.
+h1,
+.doc-header__title,
+.collection-list__header h1,
+.dashboard__label,
+.render-title {
+  font-family: var(--font-hand);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+// Primary actions (Publish, Save, Create new) use clay, as on the site.
+.btn--style-primary {
+  --bg-color: var(--clay);
+  --hover-bg: var(--clay-d);
+  --color: #fffdf8;
+  transition: transform 0.25s var(--spring), background-color 0.15s;
+
+  &:hover:not(.btn--disabled) {
+    transform: translateY(-1px) rotate(-0.4deg);
+  }
+}
+
+// Dashboard cards: paper cards that lift and tilt a little on hover.
+.card {
+  transition: transform 0.3s var(--spring), box-shadow 0.2s, border-color 0.2s;
+
+  &:hover {
+    transform: translateY(-2px) rotate(-0.5deg);
+    box-shadow: 3px 4px 0 var(--theme-elevation-150);
+    border-color: var(--theme-elevation-400);
+  }
+}
+
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--clay);
+  outline-offset: 2px;
+}
+
+// Logo and nav icon (src/components/admin/Logo.tsx, Icon.tsx).
+.gl-logo {
+  display: inline-flex;
+  flex-direction: column;
+  line-height: 1;
+  color: var(--theme-text);
+
+  span {
+    font-family: var(--font-hand);
+    font-size: 2.2rem;
+  }
+
+  small {
+    margin-top: 0.4rem;
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--theme-elevation-500);
+  }
+
+  svg {
+    width: 100%;
+    height: 10px;
+    margin-top: -2px;
+  }
+}
+
+.gl-logo path,
+.gl-icon path {
+  fill: none;
+  stroke: var(--clay);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+.gl-icon {
+  display: block;
+  width: 26px;
+  height: 26px;
+
+  text {
+    font-family: var(--font-hand);
+    font-size: 15px;
+    fill: var(--theme-text);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn--style-primary,
+  .card {
+    transition: none;
+    transform: none !important;
+  }
+}
+
+// The article body reads in the same serif as on the site.
+.rich-text-lexical .editor-scroller {
+  font-family: var(--font-serif);
+}

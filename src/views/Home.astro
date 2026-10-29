@@ -1,0 +1,101 @@
+---
+// Home page, for /  and /hi/.
+import BaseLayout from '../layouts/BaseLayout.astro';
+import HeroRoute from '../components/HeroRoute.astro';
+import ArticleGrid from '../components/ArticleGrid.astro';
+import Stamp from '../components/Stamp.astro';
+import { getPublished } from '../lib/articles';
+import { SITE, TOPIC_KEYS, TYPE_KEYS } from '../lib/site';
+import { langOf, localPath, t, topicInfo, typeInfo } from '../lib/i18n';
+
+const lang = langOf(Astro);
+const tr = t(lang);
+const articles = await getPublished(lang);
+const jsonld = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: SITE.name,
+  url: new URL(localPath(lang, '/'), Astro.site).href,
+  inLanguage: lang,
+  description: tr.description,
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: `${new URL(localPath(lang, '/search/'), Astro.site).href}?q={query}`,
+    'query-input': 'required name=query',
+  },
+};
+const latest = articles.slice(0, 6);
+const tilts = [-0.6, 0.5, -0.3, 0.7, -0.5];
+---
+
+<BaseLayout jsonld={jsonld}>
+  <section class="mx-auto grid max-w-6xl items-center gap-12 px-4 pb-16 pt-12 sm:px-6 md:grid-cols-[1.05fr_1fr] md:pt-20">
+    <div data-reveal="stagger">
+      <p class="font-hand text-lg text-clay-d" style="--i:0">{tr.home.kicker}</p>
+      <h1 class="mt-3 font-serif text-5xl font-semibold leading-[1.05] tracking-tight text-ink sm:text-6xl" style="--i:1">
+        {tr.home.hero[0]}<span class="relative inline-block">
+          {tr.home.hero[1]}
+          <svg class="absolute -bottom-2 left-0 h-3 w-full overflow-visible" viewBox="0 0 300 12" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M3 8 C 80 2, 190 12, 297 4" pathLength="1" data-draw style="fill:none;stroke:var(--clay);stroke-width:4;stroke-linecap:round;--draw-delay:.6s;--draw-dur:.9s"></path>
+          </svg>
+        </span>{tr.home.hero[2]}
+      </h1>
+      <p class="mt-6 max-w-xl text-lg leading-relaxed text-ink-2" style="--i:2">{tr.description}</p>
+      <div class="mt-8 flex flex-wrap gap-4" style="--i:3">
+        <a href={localPath(lang, '/research/')} class="btn btn-primary" data-sketch="fill" data-sketch-r="10">{tr.home.cta}</a>
+        <a href={localPath(lang, '/case-studies/')} class="btn" data-sketch="fill" data-sketch-r="10">{tr.home.cta2}</a>
+      </div>
+    </div>
+    <HeroRoute />
+  </section>
+
+  <section class="mx-auto max-w-6xl px-4 py-10 sm:px-6" aria-labelledby="formats">
+    <h2 id="formats" class="sr-only">{tr.home.whatYouFind}</h2>
+    <ul class="grid gap-8 sm:grid-cols-3">
+      {
+        TYPE_KEYS.map((k, i) => {
+          const ty = typeInfo(lang, k);
+          return (
+            <li>
+              <a href={ty.href} class="group flex flex-col items-start gap-3">
+                <Stamp kind={k} label={ty.plural} tilt={[-4, 3, -2][i]} />
+                <span class="font-serif text-lg font-semibold text-ink group-hover:text-clay-d">{ty.plural} →</span>
+                <span class="text-sm leading-relaxed text-ink-2">{ty.blurb}</span>
+              </a>
+            </li>
+          );
+        })
+      }
+    </ul>
+  </section>
+
+  <section class="mx-auto max-w-6xl px-4 py-14 sm:px-6" aria-labelledby="latest">
+    <div class="flex items-end justify-between gap-4">
+      <h2 id="latest" class="font-serif text-3xl font-semibold text-ink">{tr.home.latest}</h2>
+      <a href={localPath(lang, '/articles/')} class="nav-link text-sm">{tr.home.everything}</a>
+    </div>
+    <ArticleGrid articles={latest} empty={tr.home.firstPiece} />
+  </section>
+
+  <section class="mx-auto max-w-6xl px-4 py-14 sm:px-6" aria-labelledby="topics">
+    <h2 id="topics" class="font-serif text-3xl font-semibold text-ink">{tr.home.topics}</h2>
+    <ul class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-5" data-reveal="stagger">
+      {
+        TOPIC_KEYS.map((k, i) => {
+          const tp = topicInfo(lang, k);
+          return (
+            <li style={`--i:${i}`}>
+              <a href={tp.href} class="card flex h-full flex-col gap-2" data-sketch="fill" style={`--tilt:${tilts[i % 5]}deg;--sk-fill:color-mix(in srgb, ${tp.color} 16%, var(--card))`}>
+                <span class="font-hand text-2xl leading-tight text-ink">{tp.label}</span>
+                <span class="text-sm leading-relaxed text-ink-2">{tp.blurb}</span>
+                <span class="mt-auto pt-2 text-xs font-semibold text-clay-d">
+                  {tr.home.pieces(articles.filter((a) => a.data.topic === k).length)} →
+                </span>
+              </a>
+            </li>
+          );
+        })
+      }
+    </ul>
+  </section>
+</BaseLayout>

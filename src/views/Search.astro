@@ -1,0 +1,77 @@
+---
+// Site search, /search/ and /hi/search/. Pagefind indexes the built pages after `astro build`
+// (see the "build" script); each language has its own index, chosen from <html lang>.
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { langOf, t } from '../lib/i18n';
+
+const tr = t(langOf(Astro));
+const dev = import.meta.env.DEV;
+---
+
+<BaseLayout title={tr.search.title} description={tr.search.blurb}>
+  <section class="mx-auto max-w-3xl px-4 pt-12 sm:px-6">
+    <p class="font-hand text-lg text-clay-d">{tr.search.kicker}</p>
+    <h1 class="font-serif text-4xl font-semibold text-ink sm:text-5xl">{tr.search.title}</h1>
+    <p class="mt-3 text-lg text-ink-2">{tr.search.blurb}</p>
+    {dev && <p class="form-msg mt-6">{tr.search.devNote}</p>}
+    <div id="search" class="search mt-8" data-placeholder={tr.search.placeholder}></div>
+  </section>
+</BaseLayout>
+
+<link rel="stylesheet" href="/pagefind/pagefind-ui.css" />
+<script is:inline data-astro-rerun>
+  (async () => {
+    const el = document.getElementById('search');
+    if (!el || el.dataset.ready) return;
+    el.dataset.ready = '1';
+    if (!window.PagefindUI) {
+      await new Promise((resolve) => {
+        const s = document.createElement('script');
+        s.src = '/pagefind/pagefind-ui.js';
+        s.onload = resolve;
+        s.onerror = resolve;
+        document.head.append(s);
+      });
+    }
+    if (!window.PagefindUI) return;
+    const ui = new window.PagefindUI({
+      element: '#search',
+      showSubResults: true,
+      showImages: false,
+      resetStyles: false,
+      translations: { placeholder: el.dataset.placeholder },
+    });
+    const q = new URLSearchParams(location.search).get('q');
+    if (q) ui.triggerSearch(q);
+  })();
+</script>
+
+<style is:global>
+  .search {
+    --pagefind-ui-scale: 0.9;
+    --pagefind-ui-primary: var(--clay-d);
+    --pagefind-ui-text: var(--ink);
+    --pagefind-ui-background: var(--card);
+    --pagefind-ui-border: var(--rule);
+    --pagefind-ui-tag: var(--paper-2);
+    --pagefind-ui-border-width: 1.5px;
+    --pagefind-ui-border-radius: 10px;
+    --pagefind-ui-font: var(--font-sans);
+  }
+  .search .pagefind-ui__search-input {
+    font-family: var(--font-hand);
+    font-size: 1.25rem;
+  }
+  .search .pagefind-ui__result-link {
+    font-family: var(--font-serif);
+    color: var(--ink);
+  }
+  .search .pagefind-ui__result-link:hover {
+    color: var(--clay-d);
+  }
+  .search mark {
+    background: var(--clay-l);
+    color: inherit;
+    border-radius: 2px;
+  }
+</style>

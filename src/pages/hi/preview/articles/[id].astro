@@ -1,0 +1,13 @@
+---
+import ArticleView from '../../../../views/Article.astro';
+import { getPublished } from '../../../../lib/articles';
+import { getDraft } from '../../../../lib/preview';
+
+export const prerender = false;
+
+const article = await getDraft(Astro.params.id, 'hi', Astro.cookies);
+if (!article) return new Response('Sign in to the admin panel to preview drafts.', { status: 404 });
+Astro.response.headers.set('Cache-Control', 'no-store');
+---
+
+<ArticleView article={article} all={await getPublished('hi')} preview />

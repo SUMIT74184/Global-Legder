@@ -1,0 +1,21 @@
+---
+// Shown instead of a chart whose CSV doesn't fit the block's settings, so a typo in a column name
+// is visible in the preview instead of breaking the page. Publishing checks the same thing.
+interface Props {
+  title?: string;
+  headers: string[];
+  missing: string[];
+}
+
+const { title, headers, missing } = Astro.props;
+---
+
+<figure class="chart not-prose" data-sketch="fill" data-sketch-r="12">
+  {title && <p class="font-sans text-base font-semibold text-ink">{title}</p>}
+  <p class="form-msg mt-2 font-sans text-sm" role="alert">
+    {missing.length > 0
+      ? `Column ${missing.map((m) => `"${m}"`).join(' and ')} is not in the CSV.`
+      : 'The CSV has no rows with a label and a number in the chosen columns.'}
+    {` Columns in the file: ${headers.map((h) => `"${h}"`).join(', ') || 'none'}.`}
+  </p>
+</figure>

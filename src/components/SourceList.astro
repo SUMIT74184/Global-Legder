@@ -1,0 +1,37 @@
+---
+import type { Article } from '../lib/articles';
+import { formatDate, langOf, t } from '../lib/i18n';
+
+interface Props {
+  references: Article['data']['references'];
+}
+
+const { references } = Astro.props;
+const lang = langOf(Astro);
+const tr = t(lang);
+---
+
+{
+  references.length > 0 && (
+    <section class="mt-14" aria-labelledby="references">
+      <h2 id="references" class="font-serif text-2xl font-semibold text-ink">{tr.piece.references}</h2>
+      <ol class="mt-4 space-y-3 font-sans text-sm text-ink-2">
+        {references.map((s, i) => (
+          <li id={`ref-${s.id}`} class="flex gap-3">
+            <span class="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded bg-clay-l text-xs font-bold text-clay-d">{i + 1}</span>
+            <div>
+              <a href={s.url} class="font-medium text-ink underline decoration-clay/40 underline-offset-2 hover:decoration-clay">{s.title}</a>
+              {s.publisher && <span class="text-mute"> · {s.publisher}</span>}
+              {(s.archived || s.accessed) && (
+                <div class="mt-0.5 flex flex-wrap gap-x-3 text-xs text-mute">
+                  {s.archived && <a href={s.archived} class="hover:text-clay-d hover:underline">{tr.piece.archived}</a>}
+                  {s.accessed && <span>{`${tr.piece.accessed} ${formatDate(s.accessed, lang)}`}</span>}
+                </div>
+              )}
+            </div>
+          </li>
+        ))}
+      </ol>
+    </section>
+  )
+}

@@ -1,0 +1,70 @@
+---
+// Listing pages: /research/, /case-studies/, /reports/, /articles/ and /topics/<topic>/, in both
+// languages. `type` or `topic` picks the filter; neither lists everything.
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ArticleGrid from '../components/ArticleGrid.astro';
+import { getPublished } from '../lib/articles';
+import { TOPIC_KEYS, TYPE_KEYS, type ContentType, type Topic } from '../lib/site';
+import { langOf, localPath, t, topicInfo, typeInfo } from '../lib/i18n';
+
+interface Props {
+  type?: ContentType;
+  topic?: Topic;
+}
+
+const { type, topic } = Astro.props;
+const lang = langOf(Astro);
+const tr = t(lang);
+const all = await getPublished(lang);
+const articles = all.filter((a) => (!type || a.data.type === type) && (!topic || a.data.topic === topic));
+const head = type
+  ? { kicker: tr.list.browse, title: typeInfo(lang, type).plural, blurb: typeInfo(lang, type).blurb }
+  : topic
+    ? { kicker: tr.list.topic, title: topicInfo(lang, topic).label, blurb: topicInfo(lang, topic).blurb }
+    : { kicker: tr.list.archive, title: tr.list.everything, blurb: tr.list.everythingBlurb };
+const path = Astro.url.pathname;
+const everything = localPath(lang, '/articles/');
+---
+
+<BaseLayout title={head.title} description={head.blurb}>
+  <section class="mx-auto max-w-6xl px-4 pt-12 sm:px-6">
+    <p class="font-hand text-lg text-clay-d">{head.kicker}</p>
+    <h1 class="font-serif text-4xl font-semibold text-ink sm:text-5xl">{head.title}</h1>
+    <p class="mt-3 max-w-xl text-lg text-ink-2">{head.blurb}</p>
+    <nav class="mt-7 space-y-3" aria-label={tr.list.filter}>
+      <div class="flex flex-wrap gap-2">
+        <a href={everything} class="chip hover:opacity-80" aria-current={path === everything ? 'page' : undefined}>{tr.list.everything}</a>
+        {
+          TYPE_KEYS.map((k) => {
+            const ty = typeInfo(lang, k);
+            return (
+              <a href={ty.href} class="chip hover:opacity-80" aria-current={path === ty.href ? 'page' : undefined}>
+                {ty.plural}
+              </a>
+            );
+          })
+        }
+      </div>
+      <div class="flex flex-wrap gap-2">
+        {
+          TOPIC_KEYS.map((k) => {
+            const tp = topicInfo(lang, k);
+            return (
+              <a href={tp.href} class="chip hover:opacity-80" style={`--chip:${tp.color}`} aria-current={path === tp.href ? 'page' : undefined}>
+                {tp.label}
+              </a>
+            );
+          })
+        }
+      </div>
+    </nav>
+    <ArticleGrid articles={articles} />
+  </section>
+</BaseLayout>
+
+<style>
+  .chip[aria-current='page'] {
+    background: var(--ink);
+    color: var(--paper);
+  }
+</style>

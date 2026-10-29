@@ -1,0 +1,40 @@
+---
+import AuthShell from '../components/AuthShell.astro';
+import { getSession, safeNext } from '../lib/auth';
+
+export const prerender = false;
+
+const next = safeNext(Astro.url.searchParams.get('next'));
+if (await getSession(Astro.cookies)) return Astro.redirect(next);
+
+const errors: Record<string, string> = {
+  exists: 'An account with that email already exists. Try signing in.',
+  short: 'Use at least 8 characters for the password.',
+  missing: 'Enter your name and email.',
+  invalid: 'Couldn’t create the account. Check the email address and try again.',
+};
+const error = errors[Astro.url.searchParams.get('error') ?? ''];
+---
+
+<AuthShell title="Create an account" kicker="Join the ledger">
+  {error && <p class="form-msg mt-5" role="alert">{error}</p>}
+  <form method="post" action="/api/auth/signup/" class="mt-6 grid gap-5">
+    <input type="hidden" name="next" value={next} />
+    <label class="field-label">
+      Name
+      <span class="field" data-sketch="fill" data-sketch-r="8"><input type="text" name="name" autocomplete="name" maxlength="80" required /></span>
+    </label>
+    <label class="field-label">
+      Email
+      <span class="field" data-sketch="fill" data-sketch-r="8"><input type="email" name="email" autocomplete="email" required /></span>
+    </label>
+    <label class="field-label">
+      Password <span class="font-normal text-mute">(8+ characters)</span>
+      <span class="field" data-sketch="fill" data-sketch-r="8"><input type="password" name="password" autocomplete="new-password" minlength="8" required /></span>
+    </label>
+    <button type="submit" class="btn btn-primary justify-center" data-sketch="fill">Create account</button>
+  </form>
+  <p class="mt-6 text-sm text-ink-2">
+    Already have an account? <a class="font-semibold text-clay-d underline" href={`/login/?next=${encodeURIComponent(next)}`}>Sign in</a>
+  </p>
+</AuthShell>

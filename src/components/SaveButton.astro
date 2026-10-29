@@ -1,0 +1,34 @@
+---
+// Bookmark toggle. Works without JS (posts and comes back); with JS, ui.ts shows the saved state.
+import { langOf, t } from '../lib/i18n';
+
+const tr = t(langOf(Astro));
+
+interface Props {
+  docId: number;
+  next: string;
+}
+
+const { docId, next } = Astro.props;
+---
+
+<form method="post" action="/api/account/save/" class="inline" data-save-form>
+  <input type="hidden" name="id" value={docId} />
+  <input type="hidden" name="next" value={next} />
+  <button type="submit" class="btn !px-3 !py-1 text-xs" data-sketch="fill" data-sketch-r="999" data-save-button aria-pressed="false">
+    <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" aria-hidden="true">
+      <path d="M6 3.5h12v17l-6-4.2-6 4.2z"></path>
+    </svg>
+    <span data-save-label data-save={tr.piece.save} data-saved={tr.piece.saved}>{tr.piece.save}</span>
+  </button>
+</form>
+
+<style>
+  [data-save-button][aria-pressed='true'] {
+    --sk-fill: var(--clay-l);
+  }
+  [data-save-button][aria-pressed='true'] path {
+    fill: var(--clay);
+    stroke: var(--clay-d);
+  }
+</style>

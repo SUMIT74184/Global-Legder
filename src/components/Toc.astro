@@ -1,0 +1,33 @@
+---
+import type { Heading } from '../lib/lexical';
+import { langOf, t } from '../lib/i18n';
+
+interface Props {
+  headings: Heading[];
+  hasReferences: boolean;
+  hasUpdates: boolean;
+  hasNotes?: boolean;
+}
+
+const { hasReferences, hasUpdates, hasNotes = false } = Astro.props;
+const tr = t(langOf(Astro));
+const items = Astro.props.headings.filter((h) => h.depth <= 3);
+---
+
+{
+  items.length > 1 && (
+    <nav class="toc font-sans text-sm" aria-label={tr.piece.onThisPage}>
+      <p class="mb-2 font-hand text-lg text-ink">{tr.piece.onThisPage}</p>
+      <ul>
+        {items.map((h) => (
+          <li class={h.depth === 3 ? 'pl-3' : ''}>
+            <a href={`#${h.slug}`}>{h.text}</a>
+          </li>
+        ))}
+        {hasNotes && <li><a href="#notes">{tr.piece.notes}</a></li>}
+        {hasReferences && <li><a href="#references">{tr.piece.references}</a></li>}
+        {hasUpdates && <li><a href="#updates">{tr.piece.updates}</a></li>}
+      </ul>
+    </nav>
+  )
+}

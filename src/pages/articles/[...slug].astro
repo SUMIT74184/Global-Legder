@@ -1,0 +1,18 @@
+---
+import ArticleView from '../../views/Article.astro';
+import { getPublished, type Article } from '../../lib/articles';
+
+export async function getStaticPaths() {
+  const all = await getPublished('en');
+  return all.map((article) => ({ params: { slug: article.id }, props: { article, all } }));
+}
+
+interface Props {
+  article: Article;
+  all: Article[];
+}
+
+const { article, all } = Astro.props;
+---
+
+<ArticleView article={article} all={all} />

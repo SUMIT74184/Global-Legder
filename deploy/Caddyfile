@@ -1,0 +1,11 @@
+# Production: one domain for the site and the admin panel.
+# The Astro site runs on :4321 (pnpm start), Payload on :3000 (pnpm --dir cms start).
+# Set PAYLOAD_PUBLIC_URL=https://thegloballedger.example in cms/.env.
+thegloballedger.example {
+	encode zstd gzip
+
+	@cms path /admin /admin/* /cms-api/* /_next/*
+	reverse_proxy @cms localhost:3000
+
+	reverse_proxy localhost:4321
+}

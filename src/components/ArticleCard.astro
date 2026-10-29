@@ -1,0 +1,36 @@
+---
+import type { Article } from '../lib/articles';
+import { formatDate, langOf, localPath, t, topicInfo, typeInfo } from '../lib/i18n';
+
+interface Props {
+  article: Article;
+  tilt?: number;
+}
+
+const { article, tilt = 0 } = Astro.props;
+const { title, description, topic, type, pubDate, updated } = article.data;
+const lang = langOf(Astro);
+const tr = t(lang);
+const tp = topicInfo(lang, topic);
+const shownInEnglish = lang === 'hi' && article.lang === 'en';
+---
+
+<a
+  href={localPath(lang, `/articles/${article.id}/`)}
+  class="card flex h-full flex-col gap-2 text-ink"
+  data-sketch="fill"
+  data-sketch-r="12"
+  style={`--tilt:${tilt}deg`}
+>
+  <span class="flex flex-wrap items-center gap-2">
+    <span class="chip" style={`--chip:${tp.color}`}>{tp.label}</span>
+    <span class="font-hand text-sm text-mute">{typeInfo(lang, type).label}</span>
+    {shownInEnglish && <span class="text-xs text-mute">· {tr.card.inEnglish}</span>}
+  </span>
+  <h3 class="font-serif text-xl font-semibold leading-snug" lang={article.lang}>{title}</h3>
+  <p class="text-sm leading-relaxed text-ink-2" lang={article.lang}>{description}</p>
+  <p class="mt-auto pt-2 text-xs text-mute">
+    {formatDate(pubDate, lang)}
+    {updated && ` · ${tr.card.updated} ${formatDate(updated, lang)}`}
+  </p>
+</a>

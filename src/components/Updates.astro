@@ -1,0 +1,28 @@
+---
+// Dated notes for pieces that follow a developing story or were revised after publishing.
+import type { Article } from '../lib/articles';
+import { formatDate, langOf, t } from '../lib/i18n';
+
+interface Props {
+  updates: Article['data']['updates'];
+}
+
+const lang = langOf(Astro);
+const updates = [...Astro.props.updates].sort((a, b) => b.date.valueOf() - a.date.valueOf());
+---
+
+{
+  updates.length > 0 && (
+    <section class="mt-12" aria-labelledby="updates">
+      <h2 id="updates" class="font-serif text-2xl font-semibold text-ink">{t(lang).piece.updates}</h2>
+      <ol class="mt-4 space-y-2 font-sans text-sm">
+        {updates.map((u) => (
+          <li class="flex gap-3 border-l-2 border-clay pl-3">
+            <time class="shrink-0 font-semibold text-ink" datetime={u.date.toISOString()}>{formatDate(u.date, lang)}</time>
+            <span class="text-ink-2">{u.note}</span>
+          </li>
+        ))}
+      </ol>
+    </section>
+  )
+}

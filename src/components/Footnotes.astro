@@ -1,0 +1,33 @@
+---
+// Numbered notes under the text, from the inline Footnote blocks. Each links back to its marker.
+import type { Footnote } from '../lib/lexical';
+import { langOf, t } from '../lib/i18n';
+
+interface Props {
+  notes: Footnote[];
+}
+
+const { notes } = Astro.props;
+const tr = t(langOf(Astro));
+const linkText = (url: string) => (/^https?:/.test(url) ? new URL(url).hostname.replace(/^www\./, '') : url);
+---
+
+{
+  notes.length > 0 && (
+    <section class="mt-14" aria-labelledby="notes">
+      <h2 id="notes" class="font-serif text-2xl font-semibold text-ink">{tr.piece.notes}</h2>
+      <ol class="mt-4 space-y-2 font-sans text-sm text-ink-2">
+        {notes.map((f) => (
+          <li id={`fn-${f.n}`} class="flex gap-3 target:rounded target:bg-clay-l/60">
+            <span class="w-5 shrink-0 text-right font-semibold text-clay-d">{f.n}.</span>
+            <span>
+              {f.note}
+              {f.url && <> <a class="underline decoration-dotted underline-offset-2 hover:text-clay-d" href={f.url}>{linkText(f.url)}</a></>}
+              {' '}<a href={`#fnref-${f.n}`} class="text-mute hover:text-clay-d" aria-label={tr.piece.backToText}>↩</a>
+            </span>
+          </li>
+        ))}
+      </ol>
+    </section>
+  )
+}

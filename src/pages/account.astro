@@ -1,0 +1,159 @@
+---
+// A signed-in reader's (or editor's) account: saved pieces, newsletter topics, settings.
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ArticleCard from '../components/ArticleCard.astro';
+import { getSession } from '../lib/auth';
+import { initials as initialsOf } from '../lib/profile';
+import { toArticle, type ArticleDoc } from '../lib/articles';
+import { CMS_URL } from '../lib/cms';
+import { TOPICS, TOPIC_KEYS } from '../lib/site';
+
+export const prerender = false;
+
+const session = await getSession(Astro.cookies, 1);
+if (!session) return Astro.redirect('/login/?next=/account/');
+
+const { user } = session;
+const saved = (user.saved ?? []).filter((s): s is ArticleDoc => typeof s === 'object' && s !== null).map(toArticle);
+const topics = new Set(user.newsletterTopics ?? []);
+const since = new Date(user.createdAt).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+const isStaff = user.role === 'admin' || user.role === 'editor';
+
+const messages: Record<string, [string, boolean]> = {
+  saved: ['Saved.', true],
+  password: ['Password changed.', true],
+  short: ['Use at least 8 characters for the new password.', false],
+  wrong: ['Your current password was not right.', false],
+  name: ['Enter a name.', false],
+  confirm: ['Tick the box to confirm.', false],
+  admin: ['Admin accounts can’t be deleted here. Make someone else admin first, in the admin panel.', false],
+  error: ['Something went wrong. Please try again.', false],
+};
+const msg = messages[Astro.url.searchParams.get('msg') ?? ''];
+const tilts = [-0.6, 0.5, -0.3, 0.7, -0.5, 0.3];
+---
+
+<BaseLayout title="Your account" noindex>
+  <section class="mx-auto max-w-6xl px-4 pt-12 sm:px-6">
+    {msg && <p class:list={['form-msg mb-8', { 'form-msg-ok': msg[1] }]} role="status">{msg[0]}</p>}
+
+    <div class="grid gap-10 lg:grid-cols-[280px_1fr]">
+      <aside>
+        <div class="card p-6 text-center" data-sketch="fill" data-sketch-r="14" style="--tilt:-.5deg">
+          <span class="mx-auto grid h-24 w-24 place-items-center rounded-full bg-clay-l font-hand text-4xl text-clay-d">{initialsOf(user.name)}</span>
+          <p class="mt-4 font-serif text-xl font-semibold text-ink">{user.name}</p>
+          <p class="break-all text-sm text-mute">{user.email}</p>
+          <p class="mt-3 font-hand text-sm text-ink-2">{user.role === 'reader' ? 'Reader' : user.role === 'admin' ? 'Admin' : 'Editor'} since {since}</p>
+          <div class="mt-5 flex flex-col items-center gap-3">
+            {isStaff && <a href={`${CMS_URL}/admin`} class="btn btn-primary !py-1.5 text-sm" data-sketch="fill" data-sketch-r="999">Open admin panel</a>}
+            <form method="post" action="/api/auth/logout/">
+              <button type="submit" class="btn !py-1.5 text-sm" data-sketch="fill" data-sketch-r="999">Sign out</button>
+            </form>
+          </div>
+        </div>
+        <nav class="toc mt-8 font-sans text-sm" aria-label="Account sections">
+          <a href="#saved">Saved</a>
+          <a href="#newsletter">Newsletter</a>
+          <a href="#settings">Settings</a>
+          <a href="#password">Password</a>
+          <a href="#delete">Delete account</a>
+        </nav>
+      </aside>
+
+      <div class="space-y-16">
+        <section aria-labelledby="saved">
+          <h1 id="saved" class="font-serif text-3xl font-semibold text-ink">Saved</h1>
+          {
+            saved.length === 0 ? (
+              <p class="mt-3 text-mute">Nothing saved yet. Use the Save button at the top of any piece.</p>
+            ) : (
+              <ul class="mt-8 grid gap-7 sm:grid-cols-2 xl:grid-cols-3" data-reveal="stagger">
+                {saved.map((a, i) => (
+                  <li style={`--i:${i % 6}`} class="flex flex-col gap-3">
+                    <ArticleCard article={a} tilt={tilts[i % 6]} />
+                    <form method="post" action="/api/account/save/" class="self-end">
+                      <input type="hidden" name="id" value={a.docId} />
+                      <input type="hidden" name="next" value="/account/#saved" />
+                      <button type="submit" class="text-xs font-semibold text-mute hover:text-clay-d">Remove</button>
+                    </form>
+                  </li>
+                ))}
+              </ul>
+            )
+          }
+        </section>
+
+        <section aria-labelledby="newsletter">
+          <h2 id="newsletter" class="font-serif text-2xl font-semibold text-ink">Newsletter topics</h2>
+          <p class="mt-1 text-sm text-mute">Choose what lands in your inbox once the newsletter starts.</p>
+          <form method="post" action="/api/account/settings/" class="mt-5">
+            <input type="hidden" name="section" value="topics" />
+            <fieldset class="flex flex-wrap gap-3">
+              <legend class="sr-only">Topics</legend>
+              {
+                TOPIC_KEYS.map((k) => (
+                  <label class="topic-pick btn cursor-pointer !py-1.5 text-sm" data-sketch="fill" data-sketch-r="999" style={`--pick:${TOPICS[k].color}`}>
+                    <input type="checkbox" name="topics" value={k} class="sr-only" checked={topics.has(k)} />
+                    {TOPICS[k].label}
+                  </label>
+                ))
+              }
+            </fieldset>
+            <button type="submit" class="btn mt-5 text-sm" data-sketch="fill">Save topics</button>
+          </form>
+        </section>
+
+        <section aria-labelledby="settings">
+          <h2 id="settings" class="font-serif text-2xl font-semibold text-ink">Settings</h2>
+          <form method="post" action="/api/account/settings/" class="mt-5 grid max-w-md gap-5">
+            <input type="hidden" name="section" value="profile" />
+            <label class="field-label">
+              Display name
+              <span class="field" data-sketch="fill" data-sketch-r="8"><input type="text" name="name" value={user.name} maxlength="80" required /></span>
+            </label>
+            <p class="text-sm text-mute">Email: {user.email}</p>
+            <button type="submit" class="btn btn-primary justify-self-start" data-sketch="fill">Save name</button>
+          </form>
+        </section>
+
+        <section aria-labelledby="password">
+          <h2 id="password" class="font-serif text-2xl font-semibold text-ink">Password</h2>
+          <form method="post" action="/api/account/password/" class="mt-5 grid max-w-md gap-5">
+            <input type="hidden" name="username" value={user.email} autocomplete="username" />
+            <label class="field-label">
+              Current password
+              <span class="field" data-sketch="fill" data-sketch-r="8"><input type="password" name="current" autocomplete="current-password" required /></span>
+            </label>
+            <label class="field-label">
+              New password <span class="font-normal text-mute">(8+ characters)</span>
+              <span class="field" data-sketch="fill" data-sketch-r="8"><input type="password" name="password" autocomplete="new-password" minlength="8" required /></span>
+            </label>
+            <button type="submit" class="btn justify-self-start" data-sketch="fill">Change password</button>
+          </form>
+        </section>
+
+        <section aria-labelledby="delete">
+          <h2 id="delete" class="font-serif text-2xl font-semibold text-ink">Delete account</h2>
+          <p class="mt-1 text-sm text-mute">This removes your account, saved pieces and newsletter choices. It can’t be undone.</p>
+          <form method="post" action="/api/account/delete/" class="mt-5 grid max-w-md gap-4">
+            <label class="flex items-center gap-2 text-sm text-ink-2">
+              <input type="checkbox" name="confirm" value="yes" required class="accent-[var(--clay)]" />
+              I understand, delete my account
+            </label>
+            <button type="submit" class="btn justify-self-start text-sm" data-sketch="fill" style="--sk-ink:var(--bad);color:var(--bad)">Delete my account</button>
+          </form>
+        </section>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .topic-pick:has(input:checked) {
+    --sk-fill: color-mix(in srgb, var(--pick) 35%, var(--card));
+  }
+  .topic-pick:has(input:focus-visible) {
+    outline: 2px dashed var(--clay);
+    outline-offset: 4px;
+  }
+</style>

@@ -1,0 +1,62 @@
+---
+import { SITE } from '../lib/site';
+import { langOf, localPath, switchPath, t } from '../lib/i18n';
+
+const lang = langOf(Astro);
+const tr = t(lang);
+const other = lang === 'hi' ? 'en' : 'hi';
+const links = [
+  { href: localPath(lang, '/research/'), label: tr.nav.research },
+  { href: localPath(lang, '/case-studies/'), label: tr.nav.caseStudies },
+  { href: localPath(lang, '/reports/'), label: tr.nav.reports },
+  { href: localPath(lang, '/profile/'), label: tr.nav.profile },
+];
+const path = Astro.url.pathname;
+// Pages that only exist in English (account, login…) switch to the Hindi home page.
+const englishOnly = /^\/(account|login|signup|preview)\//.test(path);
+const switchTo = englishOnly ? localPath(other, '/') : switchPath(path, other);
+---
+
+<header class="sticky top-0 z-40 border-b border-rule/70 bg-paper/85 backdrop-blur" transition:animate="none">
+  <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 sm:px-6">
+    <a href={localPath(lang, '/')} class="wordmark group inline-flex flex-col leading-none text-ink">
+      <span class="font-hand text-[1.55rem]">{SITE.name}</span>
+      <svg class="wordmark-line -mt-0.5 h-2 w-full" viewBox="0 0 200 10" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M3 6 C 48 2, 118 9, 197 4" pathLength="1"></path>
+      </svg>
+    </a>
+    <nav class="ml-auto flex flex-wrap items-center gap-1 text-sm font-medium" aria-label="Main">
+      {
+        links.map((l) => (
+          <a href={l.href} class="nav-link" aria-current={path.startsWith(l.href) ? 'page' : undefined}>
+            {l.label}
+          </a>
+        ))
+      }
+      <a href="/login/" class="nav-link" data-auth-link data-account-label={tr.nav.account}>{tr.nav.signIn}</a>
+      <a href={localPath(lang, '/search/')} class="nav-link !px-2" aria-label={tr.nav.search} aria-current={path === localPath(lang, '/search/') ? 'page' : undefined}>
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+          <circle cx="10.5" cy="10.5" r="6.5"></circle><path d="M15.5 15.5 21 21"></path>
+        </svg>
+      </a>
+      <a href={switchTo} class="nav-link lang-link" hreflang={other} lang={other} aria-label={tr.switchLang} data-astro-reload>{tr.otherLang}</a>
+      <button
+        type="button"
+        class="btn ml-1 !px-2.5 !py-2"
+        data-sketch="fill"
+        data-sketch-r="999"
+        data-sketch-seed="theme"
+        data-theme-toggle
+        aria-label={tr.themeToggle}
+      >
+        <svg class="h-4 w-4 dark:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5a8.6 8.6 0 1 0 10.7 10.7Z"></path>
+        </svg>
+        <svg class="hidden h-4 w-4 dark:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4.2"></circle>
+          <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"></path>
+        </svg>
+      </button>
+    </nav>
+  </div>
+</header>

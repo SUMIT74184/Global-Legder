@@ -1,0 +1,35 @@
+---
+import AuthShell from '../components/AuthShell.astro';
+import { getSession, safeNext } from '../lib/auth';
+
+export const prerender = false;
+
+const next = safeNext(Astro.url.searchParams.get('next'));
+if (await getSession(Astro.cookies)) return Astro.redirect(next);
+
+const errors: Record<string, string> = {
+  invalid: 'That email and password don’t match an account.',
+  locked: 'Too many attempts. The account is locked for 10 minutes.',
+  missing: 'Enter your email and password.',
+};
+const error = errors[Astro.url.searchParams.get('error') ?? ''];
+---
+
+<AuthShell title="Sign in" kicker="Welcome back">
+  {error && <p class="form-msg mt-5" role="alert">{error}</p>}
+  <form method="post" action="/api/auth/login/" class="mt-6 grid gap-5">
+    <input type="hidden" name="next" value={next} />
+    <label class="field-label">
+      Email
+      <span class="field" data-sketch="fill" data-sketch-r="8"><input type="email" name="email" autocomplete="email" required /></span>
+    </label>
+    <label class="field-label">
+      Password
+      <span class="field" data-sketch="fill" data-sketch-r="8"><input type="password" name="password" autocomplete="current-password" required /></span>
+    </label>
+    <button type="submit" class="btn btn-primary justify-center" data-sketch="fill">Sign in</button>
+  </form>
+  <p class="mt-6 text-sm text-ink-2">
+    New here? <a class="font-semibold text-clay-d underline" href={`/signup/?next=${encodeURIComponent(next)}`}>Create an account</a>
+  </p>
+</AuthShell>

@@ -1,0 +1,98 @@
+---
+// Static SVG line chart drawn at build time from a CSV (CMS media URL or a path under /public). The line draws itself when it
+// scrolls into view. The same CSV is offered for download, and a data table sits under the chart
+// for screen readers and for anyone who wants the exact numbers. A numeric x column (e.g. year) is
+// spaced by value; any other x column (e.g. country) is spaced evenly, in file order.
+import { findColumn, loadCsv, niceTicks, hashId, toNumber } from '../lib/chart';
+import ChartProblem from './ChartProblem.astro';
+import { formatNumber, langOf, t } from '../lib/i18n';
+
+interface Props {
+  csv: string; // CMS media URL, or a path under /public such as "/data/series.csv"
+  x: string; // column name for the x axis
+  y: string; // column name for the y axis
+  title: string;
+  unit?: string;
+  source: string;
+  sourceUrl?: string;
+  notebook?: string; // link to the analysis notebook
+  note?: string;
+}
+
+const { csv, x, y, title = '', unit = '', source = '', sourceUrl, notebook, note } = Astro.props;
+const data = await loadCsv(csv);
+const xCol = findColumn(data.headers, x);
+const yCol = findColumn(data.headers, y);
+const raw = xCol && yCol ? data.rows.map((r) => ({ label: r[xCol], y: toNumber(r[yCol]) })).filter((p) => p.label && Number.isFinite(p.y)) : [];
+const numericX = raw.every((p) => Number.isFinite(toNumber(p.label)));
+const pts = raw.map((p, i) => ({ x: numericX ? toNumber(p.label) : i, y: p.y, label: p.label }));
+const broken = !xCol || !yCol || pts.length < 2;
+
+const W = 640;
+const H = 300;
+const m = { t: 18, r: 64, b: 32, l: 44 };
+const xs = broken ? [0, 1] : pts.map((p) => p.x);
+const ys = broken ? [0, 1] : pts.map((p) => p.y);
+const x0 = Math.min(...xs);
+const x1 = Math.max(...xs);
+const yTicks = niceTicks(Math.min(...ys), Math.max(...ys));
+const y0 = yTicks[0];
+const y1 = yTicks[yTicks.length - 1];
+const sx = (v: number) => m.l + ((v - x0) / (x1 - x0 || 1)) * (W - m.l - m.r);
+const sy = (v: number) => H - m.b - ((v - y0) / (y1 - y0 || 1)) * (H - m.t - m.b);
+
+const line = pts.map((p, i) => `${i ? 'L' : 'M'}${sx(p.x).toFixed(1)} ${sy(p.y).toFixed(1)}`).join('');
+const area = `${line}L${sx(x1).toFixed(1)} ${sy(y0)}L${sx(x0).toFixed(1)} ${sy(y0)}Z`;
+const xEvery = Math.ceil(pts.length / 6);
+const xTicks = pts.filter((_, i) => i % xEvery === 0 || i === pts.length - 1);
+const last = pts[pts.length - 1] ?? { x: 0, y: 0, label: '' };
+const id = `c${hashId(title || csv)}`;
+const lang = langOf(Astro);
+const tr = t(lang);
+const fmt = (v: number) => formatNumber(v, lang);
+---
+
+{broken ? (
+  <ChartProblem title={title} headers={data.headers} missing={[!xCol && x, !yCol && y].filter(Boolean) as string[]} />
+) : (
+<figure class="chart not-prose" data-sketch="fill" data-sketch-r="12" data-reveal>
+  <figcaption class="mb-3">
+    <p class="font-sans text-base font-semibold text-ink">{title}</p>
+    {unit && <p class="font-sans text-xs text-mute">{unit}</p>}
+  </figcaption>
+  <svg viewBox={`0 0 ${W} ${H}`} class="h-auto w-full overflow-visible" role="img" aria-labelledby={`${id}-t`}>
+    <title id={`${id}-t`}>{title}. {tr.chart.source}: {source}.</title>
+    <defs>
+      <pattern id={`${id}-hatch`} class="chart-hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+        <line x1="0" y1="0" x2="0" y2="7"></line>
+      </pattern>
+    </defs>
+    <g class="chart-grid">
+      {yTicks.map((t) => <line x1={m.l} x2={W - m.r} y1={sy(t)} y2={sy(t)} />)}
+    </g>
+    <g class="chart-axis">
+      {yTicks.map((t) => <text x={m.l - 8} y={sy(t) + 4} text-anchor="end">{fmt(t)}</text>)}
+      {xTicks.map((t) => <text x={sx(t.x)} y={H - m.b + 20} text-anchor="middle">{t.label}</text>)}
+    </g>
+    <path class="chart-area" d={area} fill={`url(#${id}-hatch)`}></path>
+    <path class="chart-line" d={line} pathLength="1" data-draw></path>
+    <g data-after-draw>
+      <circle class="chart-dot" cx={sx(last.x)} cy={sy(last.y)} r="5.5"></circle>
+      <text class="chart-label" x={sx(last.x) + 10} y={sy(last.y) + 4}>{fmt(last.y)}</text>
+    </g>
+  </svg>
+  <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 font-sans text-xs text-mute">
+    <span>{tr.chart.source}: {sourceUrl ? <a class="underline decoration-dotted underline-offset-2 hover:text-clay-d" href={sourceUrl}>{source}</a> : source}</span>
+    <a class="font-semibold text-clay-d hover:underline" href={csv} download>{tr.chart.download}</a>
+    {notebook && <a class="font-semibold text-clay-d hover:underline" href={notebook}>{tr.chart.notebook}</a>}
+  </div>
+  {note && <p class="mt-1 font-sans text-xs text-mute">{note}</p>}
+  <details class="mt-2 font-sans text-xs text-ink-2">
+    <summary class="cursor-pointer text-mute hover:text-ink">{tr.chart.numbers}</summary>
+    <table class="mt-2 w-full max-w-xs">
+      <thead><tr><th class="py-1 text-left">{x}</th><th class="py-1 text-right">{y}</th></tr></thead>
+      <tbody>{pts.map((p) => <tr class="border-t border-rule"><td class="py-0.5">{p.label}</td><td class="py-0.5 text-right tabular-nums">{fmt(p.y)}</td></tr>)}</tbody>
+    </table>
+  </details>
+</figure>
+)}

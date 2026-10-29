@@ -1,0 +1,15 @@
+---
+// A taped-on sticky note for asides, caveats and "what this means" boxes inside articles.
+interface Props {
+  title?: string;
+  tilt?: number;
+}
+
+const { title, tilt = -0.8 } = Astro.props;
+---
+
+<aside class="note not-prose" data-sketch="fill" data-sketch-r="4" data-reveal="unfold" style={`--tilt:${tilt}deg`}>
+  <span class="note-tape" aria-hidden="true"></span>
+  {title && <p class="note-title">{title}</p>}
+  <div class="space-y-3 leading-relaxed"><slot /></div>
+</aside>

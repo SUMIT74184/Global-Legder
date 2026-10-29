@@ -1,0 +1,144 @@
+---
+// One level of Lexical nodes; calls itself for children. Blocks map to the site's components.
+import LineChart from './LineChart.astro';
+import BarChart from './BarChart.astro';
+import MapBlock, { type MapRoute } from './MapBlock.astro';
+import Timeline from './Timeline.astro';
+import Gallery from './Gallery.astro';
+import Note from './Note.astro';
+import YouTube from './YouTube.astro';
+import { formatText, safeHref, type LexNode } from '../lib/lexical';
+
+interface Props {
+  nodes: LexNode[];
+}
+
+const { nodes } = Astro.props;
+
+const align = (n: LexNode) =>
+  typeof n.format === 'string' && ['center', 'right', 'justify'].includes(n.format) ? `text-align:${n.format}` : undefined;
+
+const linkOf = (n: LexNode) => {
+  const f = n.fields ?? {};
+  if (f.linkType === 'internal' && f.doc?.value?.slug) return { href: `/articles/${f.doc.value.slug}/`, external: false };
+  const href = safeHref(f.url ?? n.url);
+  return { href, external: !!href && /^https?:/.test(href) };
+};
+
+const mediaUrl = (m: unknown) => (m && typeof m === 'object' && 'url' in m ? String((m as { url: string }).url) : undefined);
+
+// "lat, lng" per line → [lat, lng] pairs (the CMS validates the format).
+const pathOf = (text: unknown) =>
+  String(text ?? '')
+    .split('\n')
+    .map((l) => l.split(',').map((v) => Number(v.trim())))
+    .filter((p) => p.length === 2 && p.every(Number.isFinite)) as [number, number][];
+---
+
+{
+  nodes.map((n) => {
+    const kids = n.children ?? [];
+    switch (n.type) {
+      case 'text':
+        return <Fragment set:html={formatText(n)} />;
+      case 'linebreak':
+        return <br />;
+      case 'tab':
+        return ' ';
+      case 'paragraph':
+        return kids.length ? <p style={align(n)}><Astro.self nodes={kids} /></p> : null;
+      case 'heading': {
+        const Tag = (/^h[2-6]$/.test(n.tag ?? '') ? n.tag : 'h2') as 'h2';
+        return <Tag id={n.slug} style={align(n)}><Astro.self nodes={kids} /></Tag>;
+      }
+      case 'quote':
+        return <blockquote><Astro.self nodes={kids} /></blockquote>;
+      case 'list': {
+        const Tag = n.listType === 'number' ? 'ol' : 'ul';
+        return <Tag class={n.listType === 'check' ? 'list-none !pl-0' : undefined}><Astro.self nodes={kids} /></Tag>;
+      }
+      case 'listitem':
+        return (
+          <li>
+            {typeof n.checked === 'boolean' && <input type="checkbox" checked={n.checked} disabled class="mr-2 accent-[var(--clay)]" />}
+            <Astro.self nodes={kids} />
+          </li>
+        );
+      case 'link':
+      case 'autolink': {
+        const { href, external } = linkOf(n);
+        return href ? (
+          <a href={href} {...(external || n.fields?.newTab ? { target: '_blank', rel: 'noopener noreferrer' } : {})}><Astro.self nodes={kids} /></a>
+        ) : (
+          <Astro.self nodes={kids} />
+        );
+      }
+      case 'horizontalrule':
+        return <hr />;
+      case 'upload': {
+        const url = mediaUrl(n.value);
+        return url && n.value?.mimeType?.startsWith('image/') ? (
+          <figure>
+            <img src={url} alt={n.value.alt ?? ''} loading="lazy" decoding="async" class="rounded-lg" />
+            {n.value.alt && <figcaption>{n.value.alt}</figcaption>}
+          </figure>
+        ) : null;
+      }
+      case 'block': {
+        const f = n.fields ?? {};
+        if (f.blockType === 'chart') {
+          const csv = mediaUrl(f.csv);
+          return csv ? (
+            <LineChart csv={csv} x={f.x ?? ''} y={f.y ?? ''} title={f.title ?? ''} unit={f.unit ?? undefined} source={f.source ?? ''} sourceUrl={safeHref(f.sourceUrl)} notebook={safeHref(f.notebook)} note={f.note ?? undefined} />
+          ) : null;
+        }
+        if (f.blockType === 'barChart') {
+          const csv = mediaUrl(f.csv);
+          return csv ? (
+            <BarChart csv={csv} x={f.x ?? ''} y={f.y ?? ''} title={f.title ?? ''} unit={f.unit ?? undefined} sort={f.sort ?? 'desc'} highlight={f.highlight ?? undefined} source={f.source ?? ''} sourceUrl={safeHref(f.sourceUrl)} note={f.note ?? undefined} />
+          ) : null;
+        }
+        if (f.blockType === 'map') {
+          const places = (f.places ?? []).map((p: any) => ({ name: p.name, lat: Number(p.lat), lng: Number(p.lng), kind: p.kind ?? 'point', note: p.note ?? undefined }));
+          const routes: MapRoute[] = (f.routes ?? []).map((r: any) => ({ label: r.label ?? undefined, colour: r.colour ?? 'clay', dashed: !!r.dashed, path: pathOf(r.path) }));
+          return <MapBlock title={f.title} places={places} routes={routes} source={f.source ?? undefined} caption={f.caption ?? undefined} height={f.height ?? 'md'} />;
+        }
+        if (f.blockType === 'timeline') {
+          return <Timeline title={f.title ?? undefined} events={(f.events ?? []).map((e: any) => ({ date: e.date ?? '', title: e.title ?? '', text: e.text ?? undefined }))} />;
+        }
+        if (f.blockType === 'gallery') {
+          const images = (f.images ?? [])
+            .map((i: any) => ({
+              url: mediaUrl(i.image) ?? (/^https:\/\//i.test(i.url ?? '') ? i.url : undefined),
+              alt: i.image?.alt ?? i.caption ?? '',
+              caption: i.caption ?? undefined,
+              credit: i.credit ?? undefined,
+            }))
+            .filter((i: { url?: string }) => i.url);
+          return images.length ? <Gallery images={images} caption={f.caption ?? undefined} /> : null;
+        }
+        if (f.blockType === 'note') {
+          return (
+            <Note title={f.title ?? undefined}>
+              {String(f.text ?? '').split(/\n\s*\n/).map((p: string) => <p>{p}</p>)}
+            </Note>
+          );
+        }
+        if (f.blockType === 'youtube' && /^[\w-]{6,20}$/.test(f.videoId ?? '')) {
+          return <YouTube id={f.videoId} title={f.title ?? 'Video'} />;
+        }
+        return null;
+      }
+      case 'inlineBlock': {
+        if (n.fields?.blockType === 'footnote' && n.fn) {
+          return (
+            <sup class="footnote-ref"><a id={`fnref-${n.fn}`} href={`#fn-${n.fn}`} title={String(n.fields.note ?? '')}>{n.fn}</a></sup>
+          );
+        }
+        return null;
+      }
+      default:
+        return kids.length ? <Astro.self nodes={kids} /> : null;
+    }
+  })
+}

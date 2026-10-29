@@ -1,0 +1,13 @@
+---
+// Renders a Payload Lexical body inside the article prose styles.
+import RichNode from './RichNode.astro';
+import type { LexicalRoot } from '../lib/lexical';
+
+interface Props {
+  body: LexicalRoot | null;
+}
+
+const { body } = Astro.props;
+---
+
+{body && <RichNode nodes={body.root.children ?? []} />}

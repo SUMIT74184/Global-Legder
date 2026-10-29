@@ -1,0 +1,32 @@
+# Local Postgres for the Payload CMS, and Umami (visitor analytics) on the same server.
+# Start with: docker compose up -d
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "127.0.0.1:5433:5432" # 5432 is taken by the system Postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/initdb-umami.sql:/docker-entrypoint-initdb.d/umami.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      retries: 10
+
+  umami:
+    image: ghcr.io/umami-software/umami:3.4.1
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/umami
+      APP_SECRET: ${UMAMI_APP_SECRET}
+      DISABLE_TELEMETRY: 1
+    ports:
+      - "127.0.0.1:3001:3000"
+
+volumes:
+  pgdata:

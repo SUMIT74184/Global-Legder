@@ -1,0 +1,10 @@
+---
+import Listing from '../../views/Listing.astro';
+import { TOPIC_KEYS, type Topic } from '../../lib/site';
+
+export function getStaticPaths() {
+  return TOPIC_KEYS.map((topic) => ({ params: { topic } }));
+}
+---
+
+<Listing topic={Astro.params.topic as Topic} />

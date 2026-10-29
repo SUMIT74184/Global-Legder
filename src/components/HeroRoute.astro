@@ -1,0 +1,62 @@
+---
+// Decorative hero drawing: hand-drawn landmasses on graph paper with a trade route that draws itself,
+// inside a slow Ken Burns zoom. Not a real map; places are generic.
+const route = 'M118 120 C168 152,190 176,222 192 C262 210,292 170,330 142 C350 128,362 122,374 118';
+---
+
+<div class="hero-route p-2" data-sketch="fill" data-sketch-r="16" data-sketch-seed="hero" data-reveal>
+  <div class="kb kb-1 aspect-[4/3] w-full">
+    <svg viewBox="0 0 480 360" aria-hidden="true">
+      <defs>
+        <pattern id="hero-grid" width="24" height="24" patternUnits="userSpaceOnUse">
+          <path class="grid" d="M24 0H0V24"></path>
+        </pattern>
+        <mask id="hero-route-mask">
+          <path class="mask" d={route} pathLength="1" data-draw style="--draw-dur:2.2s;--draw-delay:.4s"></path>
+        </mask>
+      </defs>
+      <rect width="480" height="360" fill="url(#hero-grid)"></rect>
+      <g class="land">
+        <path d="M40 92 C70 50,150 60,170 100 C186 136,150 170,110 166 C70 160,24 130,40 92Z"></path>
+        <path d="M262 58 C322 38,420 70,430 120 C440 170,380 192,330 176 C292 162,240 120,262 58Z"></path>
+        <path d="M182 232 C222 206,300 216,320 252 C336 286,280 322,230 312 C190 304,150 262,182 232Z"></path>
+        <path d="M392 236 C410 226,436 234,438 252 C440 270,416 280,398 270 C386 263,380 244,392 236Z"></path>
+      </g>
+      <g class="contour">
+        <path d="M62 104 C90 84,130 88,150 108"></path>
+        <path d="M290 84 C330 70,390 88,408 116"></path>
+        <path d="M204 252 C236 238,280 246,298 266"></path>
+      </g>
+      <path class="route" d={route} mask="url(#hero-route-mask)"></path>
+      <g class="pin">
+        <circle cx="118" cy="120" r="6"></circle>
+        <circle cx="222" cy="192" r="6" data-after-draw style="--after:1.3s"></circle>
+        <circle class="end" cx="374" cy="118" r="7" data-after-draw style="--after:2.4s"></circle>
+      </g>
+      <g class="label">
+        <text x="72" y="148">Port</text>
+        <text x="196" y="226" data-after-draw style="--after:1.4s">Chokepoint</text>
+        <text x="350" y="100" data-after-draw style="--after:2.5s">Market</text>
+      </g>
+      <g transform="translate(30 286)">
+        <g data-after-draw style="--after:2.8s">
+          <rect class="spark-box" width="128" height="48" rx="6"></rect>
+          <path class="spark" d="M12 36 L34 30 L52 33 L72 20 L92 24 L116 12"></path>
+        </g>
+      </g>
+    </svg>
+  </div>
+</div>
+
+<style>
+  .grid { fill: none; stroke: var(--rule); stroke-width: 1; }
+  .mask { fill: none; stroke: #fff; stroke-width: 8; stroke-linecap: round; }
+  .land path { fill: color-mix(in srgb, var(--kraft) 38%, transparent); stroke: var(--ink); stroke-width: 1.6; stroke-linejoin: round; }
+  .contour path { fill: none; stroke: var(--ink); stroke-width: 1; opacity: .35; stroke-linecap: round; }
+  .route { fill: none; stroke: var(--clay); stroke-width: 3; stroke-dasharray: 7 7; stroke-linecap: round; }
+  .pin circle { fill: var(--card); stroke: var(--ink); stroke-width: 2; }
+  .pin .end { fill: var(--clay); }
+  .label text { font-family: var(--font-hand); font-size: 17px; fill: var(--ink); }
+  .spark-box { fill: var(--card); stroke: var(--ink); stroke-width: 1.4; }
+  .spark { fill: none; stroke: var(--olive); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+</style>

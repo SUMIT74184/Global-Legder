@@ -1,0 +1,27 @@
+---
+// Click-to-load video: only a thumbnail is fetched until the reader presses play.
+import { langOf, t } from '../lib/i18n';
+
+const tr = t(langOf(Astro));
+
+interface Props {
+  id: string;
+  title: string;
+}
+
+const { id, title } = Astro.props;
+---
+
+<figure class="not-prose my-8 p-2" data-yt={id} data-yt-title={title} data-sketch="fill" data-sketch-r="12">
+  <div class="yt-frame">
+    <button type="button" class="group relative block h-full w-full cursor-pointer" aria-label={`${tr.video.play}: ${title}`}>
+      <img src={`https://i.ytimg.com/vi/${id}/hqdefault.jpg`} alt="" loading="lazy" decoding="async" />
+      <span class="absolute inset-0 grid place-items-center">
+        <span class="grid h-16 w-16 place-items-center rounded-full bg-clay text-white shadow-lg transition-transform duration-150 group-hover:scale-110 group-hover:-rotate-6">
+          <svg class="ml-1 h-7 w-7" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l12.5-7.5z"></path></svg>
+        </span>
+      </span>
+    </button>
+  </div>
+  <figcaption class="px-2 pb-1 pt-2 text-sm text-mute">{tr.video.watch}: {title}</figcaption>
+</figure>

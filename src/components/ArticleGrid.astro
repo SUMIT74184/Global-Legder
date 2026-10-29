@@ -1,0 +1,27 @@
+---
+import ArticleCard from './ArticleCard.astro';
+import type { Article } from '../lib/articles';
+import { langOf, t } from '../lib/i18n';
+
+interface Props {
+  articles: Article[];
+  empty?: string;
+}
+
+const { articles, empty = t(langOf(Astro)).list.empty } = Astro.props;
+const tilts = [-0.6, 0.5, -0.3, 0.7, -0.5, 0.3];
+---
+
+{
+  articles.length === 0 ? (
+    <p class="mt-10 text-mute">{empty}</p>
+  ) : (
+    <ul class="mt-10 grid gap-7 sm:grid-cols-2 lg:grid-cols-3" data-reveal="stagger">
+      {articles.map((a, i) => (
+        <li style={`--i:${i % 6}`}>
+          <ArticleCard article={a} tilt={tilts[i % 6]} />
+        </li>
+      ))}
+    </ul>
+  )
+}

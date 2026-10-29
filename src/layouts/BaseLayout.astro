@@ -1,0 +1,111 @@
+---
+import '@fontsource-variable/inter';
+import '@fontsource-variable/source-serif-4';
+import '@fontsource-variable/source-serif-4/wght-italic.css';
+import '@fontsource/pangolin';
+import '@fontsource-variable/noto-serif-devanagari';
+import '@fontsource-variable/noto-sans-devanagari';
+import '@fontsource/kalam';
+import '../styles/global.css';
+import { ClientRouter } from 'astro:transitions';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { SITE } from '../lib/site';
+import { LANGS, langOf, switchPath, t } from '../lib/i18n';
+import { paper } from '../lib/transitions';
+
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+  type?: 'website' | 'article';
+  noindex?: boolean;
+  // false on pages that exist in one language only (account, login…)
+  translated?: boolean;
+  // schema.org data for search engines (JSON-LD)
+  jsonld?: Record<string, unknown> | Record<string, unknown>[];
+}
+
+const lang = langOf(Astro);
+const tr = t(lang);
+const {
+  title,
+  description = tr.description,
+  image = '/og/default.png',
+  type = 'website',
+  noindex = false,
+  translated = true,
+  jsonld,
+} = Astro.props;
+const fullTitle = title ? `${title} · ${SITE.name}` : `${SITE.name}: ${tr.tagline}`;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const ogImage = new URL(image, Astro.site);
+const alternates = translated ? LANGS.map((l) => ({ l, href: new URL(switchPath(Astro.url.pathname, l), Astro.site) })) : [];
+
+// Visitor analytics (Umami). Off until both are set in .env; see README.
+const umamiSrc = import.meta.env.PUBLIC_UMAMI_SRC;
+const umamiId = import.meta.env.PUBLIC_UMAMI_WEBSITE_ID;
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    {noindex && <meta name="robots" content="noindex" />}
+    <link rel="canonical" href={canonical} />
+    {alternates.map(({ l, href }) => <link rel="alternate" hreflang={l} href={href} />)}
+    {alternates.length > 0 && <link rel="alternate" hreflang="x-default" href={alternates[0].href} />}
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="alternate" type="application/rss+xml" title={SITE.name} href="/rss.xml" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    <meta property="og:type" content={type} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:site_name" content={SITE.name} />
+    <meta property="og:locale" content={lang === 'hi' ? 'hi_IN' : 'en_GB'} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#faf9f5" />
+    {jsonld && <script type="application/ld+json" set:html={JSON.stringify(jsonld).replace(/</g, '\\u003c')} />}
+    {umamiSrc && umamiId && <script is:inline defer src={umamiSrc} data-website-id={umamiId} data-do-not-track="true"></script>}
+    <slot name="head" />
+    <!-- Theme before first paint: saved choice, else the system setting. Re-applied after each page swap. -->
+    <script is:inline>
+      function applyTheme() {
+        let saved = null;
+        try { saved = localStorage.getItem('theme'); } catch {}
+        const dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        document.documentElement.classList.add('js');
+      }
+      applyTheme();
+      document.addEventListener('astro:after-swap', applyTheme);
+    </script>
+    <ClientRouter />
+  </head>
+  <body class="flex flex-col">
+    <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-card focus:px-3 focus:py-2">{tr.skip}</a>
+    <Header />
+    <main id="main" class="flex-1" transition:animate={paper}>
+      <slot />
+    </main>
+    <Footer />
+    <script>
+      import { initSketch } from '../scripts/sketch';
+      import { initReveal } from '../scripts/reveal';
+      import { initUi } from '../scripts/ui';
+      import { initMaps } from '../scripts/map';
+
+      document.addEventListener('astro:page-load', () => {
+        initSketch();
+        initReveal();
+        initUi();
+        initMaps();
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,127 @@
+---
+// Researcher profile, /profile/ and /hi/profile/.
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ArticleGrid from '../components/ArticleGrid.astro';
+import Note from '../components/Note.astro';
+import { getPublished } from '../lib/articles';
+import { getProfile, initials } from '../lib/profile';
+import { SITE, TYPE_KEYS } from '../lib/site';
+import { langOf, localPath, t, typeInfo } from '../lib/i18n';
+
+const lang = langOf(Astro);
+const tr = t(lang);
+const PROFILE = await getProfile(lang);
+const articles = await getPublished(lang);
+const featured = articles.filter((a) => a.data.featured);
+const selected = (featured.length ? featured : articles).slice(0, 3);
+const counts = TYPE_KEYS.map((k) => ({ ty: typeInfo(lang, k), n: articles.filter((a) => a.data.type === k).length }));
+const url = new URL(localPath(lang, '/profile/'), Astro.site).href;
+const jsonld = {
+  '@context': 'https://schema.org',
+  '@type': 'ProfilePage',
+  url,
+  inLanguage: lang,
+  mainEntity: {
+    '@type': 'Person',
+    name: PROFILE.name,
+    jobTitle: PROFILE.role || undefined,
+    description: PROFILE.bio[0],
+    ...(PROFILE.photo ? { image: new URL(PROFILE.photo, Astro.site).href } : {}),
+    ...(PROFILE.email ? { email: `mailto:${PROFILE.email}` } : {}),
+    knowsAbout: PROFILE.interests,
+    sameAs: PROFILE.links.map((l) => l.url).filter((u) => /^https?:/.test(u)),
+    worksFor: { '@type': 'Organization', name: SITE.name },
+  },
+};
+---
+
+<BaseLayout title={PROFILE.name} description={`${PROFILE.name}, ${PROFILE.role}. ${SITE.name}.`} jsonld={jsonld}>
+  <section class="mx-auto max-w-6xl px-4 pt-12 sm:px-6">
+    <div class="grid items-center gap-10 md:grid-cols-[auto_1fr]">
+      <div class="profile-photo mx-auto h-44 w-44 p-2 md:mx-0" data-sketch="fill" data-sketch-r="999" data-sketch-amp="2.2" data-sketch-seed="profile" data-reveal>
+        {
+          PROFILE.photo ? (
+            <img src={PROFILE.photo} alt={PROFILE.name} class="h-full w-full rounded-full object-cover" />
+          ) : (
+            <span class="grid h-full w-full place-items-center rounded-full bg-clay-l font-hand text-5xl text-clay-d">{initials(PROFILE.name)}</span>
+          )
+        }
+      </div>
+      <div data-reveal="stagger">
+        <p class="font-hand text-lg text-clay-d" style="--i:0">{tr.profile.kicker}</p>
+        <h1 class="font-serif text-4xl font-semibold text-ink sm:text-5xl" style="--i:1">{PROFILE.name}</h1>
+        <p class="mt-2 text-lg text-ink-2" style="--i:2">
+          {PROFILE.role}{PROFILE.location && <span class="text-mute"> · {PROFILE.location}</span>}
+        </p>
+        <ul class="mt-5 flex flex-wrap gap-2" style="--i:3">
+          {PROFILE.interests.map((t) => <li class="chip">{t}</li>)}
+        </ul>
+        {
+          (PROFILE.links.length > 0 || PROFILE.email) && (
+            <div class="mt-6 flex flex-wrap gap-3" style="--i:4">
+              {PROFILE.links.map((l) => (
+                <a href={l.url} class="btn !py-1.5 text-sm" data-sketch="fill" data-sketch-r="999">{l.label}</a>
+              ))}
+              {PROFILE.email && <a href={`mailto:${PROFILE.email}`} class="btn btn-primary !py-1.5 text-sm" data-sketch="fill" data-sketch-r="999">{tr.profile.email}</a>}
+            </div>
+          )
+        }
+      </div>
+    </div>
+
+    <ul class="mt-14 grid grid-cols-3 gap-4 sm:max-w-xl" data-reveal="stagger">
+      {
+        counts.map(({ ty, n }, i) => (
+          <li style={`--i:${i}`}>
+            <a href={ty.href} class="card block text-center" data-sketch="fill" style={`--tilt:${[-1, 0.8, -0.5][i]}deg`}>
+              <span class="block font-serif text-3xl font-semibold text-ink">{n}</span>
+              <span class="block text-xs text-mute">{ty.plural}</span>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+
+    <div class="mt-16 grid gap-12 lg:grid-cols-[minmax(0,62ch)_1fr]">
+      <div>
+        <h2 class="font-serif text-2xl font-semibold text-ink">{tr.profile.about}</h2>
+        <div class="prose prose-lg prose-ledger mt-4">
+          {PROFILE.bio.map((p) => <p>{p}</p>)}
+        </div>
+        <Note title={tr.profile.workWithMe}>
+          <p>{tr.profile.workText}{PROFILE.email && <> {tr.profile.writeTo} <a class="text-clay-d underline" href={`mailto:${PROFILE.email}`}>{PROFILE.email}</a>.</>}</p>
+        </Note>
+      </div>
+
+      <section aria-labelledby="timeline">
+        <h2 id="timeline" class="font-serif text-2xl font-semibold text-ink">{tr.profile.background}</h2>
+        <div class="relative mt-6" data-reveal>
+          <svg class="absolute left-[7px] top-1 h-[calc(100%-0.5rem)] w-2 overflow-visible" viewBox="0 0 8 100" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M4 0 C 6 25, 2 50, 4 75 S 5 95, 4 100" pathLength="1" data-draw style="fill:none;stroke:var(--kraft);stroke-width:2.5;stroke-linecap:round;--draw-dur:1.4s"></path>
+          </svg>
+          <ol class="space-y-6">
+            {
+              PROFILE.timeline.map((t, i) => (
+                <li class="relative pl-8">
+                  <span class="absolute left-0 top-1.5 h-4 w-4 rounded-full border-2 border-ink bg-card" data-after-draw style={`--after:${0.3 + i * 0.35}s`}></span>
+                  <p class="font-hand text-base text-clay-d">{t.when}</p>
+                  <p class="font-semibold text-ink">{t.what}</p>
+                  {t.detail && <p class="text-sm text-ink-2">{t.detail}</p>}
+                </li>
+              ))
+            }
+          </ol>
+        </div>
+      </section>
+    </div>
+
+    {
+      selected.length > 0 && (
+        <section class="mt-16" aria-labelledby="selected">
+          <h2 id="selected" class="font-serif text-2xl font-semibold text-ink">{tr.profile.selected}</h2>
+          <ArticleGrid articles={selected} />
+        </section>
+      )
+    }
+  </section>
+</BaseLayout>

@@ -1,0 +1,33 @@
+---
+// A row of taped-on photos, slightly tilted, with Ken Burns on hover. Each opens full size.
+import { langOf, t } from '../lib/i18n';
+
+interface Props {
+  images: { url: string; alt: string; caption?: string; credit?: string }[];
+  caption?: string;
+}
+
+const { images, caption } = Astro.props;
+const tr = t(langOf(Astro));
+const tilts = [-1.2, 0.9, -0.6, 1.1, -0.9, 0.6];
+---
+
+<figure class="gallery not-prose my-10" data-reveal="stagger">
+  <ul class:list={['grid gap-6', images.length === 1 ? '' : images.length === 2 ? 'sm:grid-cols-2' : 'sm:grid-cols-2 lg:grid-cols-3']}>
+    {
+      images.map((img, i) => (
+        <li style={`--i:${i}`}>
+          <a href={img.url} class="photo block" style={`--tilt:${tilts[i % tilts.length]}deg`} aria-label={`${tr.gallery.open}: ${img.caption || img.alt}`}>
+            <span class="note-tape" aria-hidden="true" />
+            <span class="kb block aspect-[4/3] overflow-hidden rounded" data-broken={tr.gallery.broken}>
+              <img src={img.url} alt={img.alt} loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.parentElement.classList.add('is-broken')" />
+            </span>
+            {img.caption && <span class="mt-2 block font-hand text-base leading-snug text-ink-2">{img.caption}</span>}
+            {img.credit && <span class="mt-0.5 block font-sans text-[11px] text-mute">© {img.credit}</span>}
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+  {caption && <figcaption class="mt-4 text-sm text-mute">{caption}</figcaption>}
+</figure>
